@@ -84,8 +84,10 @@ namespace LondonSewersRPG.Source
             {
                 for (int col = 0; col < textureMap.GetLength(1); col++)
                 {
-                    rectangles[row, col].X = x + size * col;
-                    rectangles[row, col].Y = y + size * row;
+                    actualXValues[row, col] = x + size * col;
+                    actualYValues[row, col] = y + size * row;
+                    rectangles[row, col].X = (int)actualXValues[row, col];
+                    rectangles[row, col].Y = (int)actualYValues[row, col];
                 }
             }
         }
