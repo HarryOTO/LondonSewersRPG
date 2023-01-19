@@ -16,11 +16,33 @@ namespace LondonSewersRPG
         SpriteBatch spriteBatch;
 
         static Environment platforms;
+        static Environment bossRoom;
 
         static Texture2D charRatRight;
         static Texture2D charRatLeft;
         static Rectangle charRect;
-        static Rectangle charCrouchRect;
+        static Rectangle bossRoomCharRect;
+
+        static Texture2D bossRight;
+        static Texture2D bossLeft;
+        static Rectangle bossRect;
+        static Rectangle bossHealthRect;
+
+        static double bossActualY;
+
+        static bool bossFacingRight;
+        static bool bossFalling;
+        static bool bossCrouching;
+        static double bossHealth;
+        static double bossYSpeed;
+        static int bossAttackTimer;
+        static int currentBossAttack;
+
+        static double bossRoomActualX;
+        static double bossRoomActualY;
+
+        static Rectangle[] cannonBallRects;
+        static Texture2D cannonBall;
 
         static Texture2D wingedRat;
         static Rectangle wingedRatRect;
@@ -38,7 +60,6 @@ namespace LondonSewersRPG
         static Texture2D attackRight;
         static Texture2D attackLeft;
 
-        static Texture2D buffRat;
         static Rectangle buffRatRect;
         static double buffRatHealth;
         static double buffRatDamage;
@@ -67,11 +88,13 @@ namespace LondonSewersRPG
         static SpriteFont font;
 
         static bool gameActiveState;
-        static bool gameOverState;
+        static bool gameBossState;
         static bool gameMenuState;
 
         static Rectangle menuRect;
         static Texture2D menu;
+
+        static System.Random random;
 
         public Game1()
         {
@@ -90,7 +113,13 @@ namespace LondonSewersRPG
             // TODO: Add your initialization logic here
 
             charRect = new Rectangle(355, 200, 90, 90);
-            charCrouchRect = new Rectangle(355, 240, 90, 50);
+            bossRoomCharRect = new Rectangle(42, 402, 36, 36);
+
+            cannonBallRects = new Rectangle[]
+            {
+                new Rectangle(800, 360, 20, 20),
+                new Rectangle(1600, 400, 20, 20)
+            };
 
             charHealthRect = new Rectangle(355, 175, 90, 10);
 
@@ -109,6 +138,21 @@ namespace LondonSewersRPG
             charMaxHealth = 10.0;
             charHealth = charMaxHealth;
             charDamage = 5.0;
+
+            bossRoomActualX = bossRoomCharRect.X;
+            bossRoomActualY = bossRoomCharRect.Y;
+
+            bossRect = new Rectangle(340, 30, 120, 100);
+            bossHealthRect = new Rectangle(30, 10, 740, 20);
+
+            bossActualY = bossRect.Y;
+
+            bossFacingRight = true;
+            bossHealth = 500.0;
+            bossFalling = true;
+            bossAttackTimer = -300;
+            bossYSpeed = 0.0;
+            currentBossAttack = 1;
 
             buffRatRect = new Rectangle(555, 140, 150, 150);
 
@@ -134,10 +178,12 @@ namespace LondonSewersRPG
             attackTimer = 0;
 
             gameActiveState = true;
-            gameOverState = false;
+            gameBossState = false;
             gameMenuState = false;
 
             menuRect = new Rectangle(0, 0, 800, 480);
+
+            random = new System.Random();
 
             base.Initialize();
         }
@@ -155,23 +201,62 @@ namespace LondonSewersRPG
                     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0 },
                     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 },
                     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 },
-                    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 },
+                    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 },
                     {0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 },
-                    {0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 },
-                    {1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
+                    {0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0 },
+                    {1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
                 },
                 new int[,] {
                     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0 },
                     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 },
                     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 },
-                    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 },
+                    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 },
                     {0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 },
-                    {0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 },
-                    {1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
+                    {0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 2, 0 },
+                    {1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
                 },
                 150, //startX
                 -310, //startY
                 100,
+                new Texture2D[] {
+                    this.Content.Load<Texture2D>("blank"),
+                    this.Content.Load<Texture2D>("wall"),
+                    this.Content.Load<Texture2D>("door")
+                }
+            );
+
+            bossRoom = new Environment(
+                new int[,] {
+                    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+                    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+                    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+                    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+                    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+                    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+                    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+                    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+                    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+                    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+                    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+                    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
+                },
+                new int[,] {
+                    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 },
+                    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+                    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+                    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+                    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+                    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+                    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+                    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+                    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+                    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+                    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1 },
+                    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
+                },
+                0, //startX
+                0, //startY
+                40,
                 new Texture2D[] {
                     this.Content.Load<Texture2D>("blank"),
                     this.Content.Load<Texture2D>("wall"),
@@ -181,6 +266,7 @@ namespace LondonSewersRPG
             charRatRight = this.Content.Load<Texture2D>("charRatRight");
             charRatLeft = this.Content.Load<Texture2D>("charRatLeft");
             wingedRat = this.Content.Load<Texture2D>("wingedRat");
+            cannonBall = this.Content.Load<Texture2D>("cannonBall");
 
             healthBar = this.Content.Load<Texture2D>("healthBar");
 
@@ -190,6 +276,9 @@ namespace LondonSewersRPG
             menu = this.Content.Load<Texture2D>("menu");
 
             font = this.Content.Load<SpriteFont>("scoreFont");
+
+            bossRight = this.Content.Load<Texture2D>("charRatRight");
+            bossLeft = this.Content.Load<Texture2D>("charRatLeft");
 
             // TODO: use this.Content to load your game content here
         }
@@ -222,9 +311,9 @@ namespace LondonSewersRPG
             {
                 gameActiveStateUpdate();
             }
-            else if (gameOverState)
+            else if (gameBossState)
             {
-                gameOverStateUpdate();
+                gameBossStateUpdate();
             }
             else if (gameMenuState)
             {
@@ -249,9 +338,9 @@ namespace LondonSewersRPG
             {
                 gameActiveStateDraw(spriteBatch);
             }
-            else if (gameOverState)
+            else if (gameBossState)
             {
-                gameOverStateDraw(spriteBatch);
+                gameBossStateDraw(spriteBatch);
             }
             else if (gameMenuState)
             {
@@ -278,6 +367,7 @@ namespace LondonSewersRPG
             // gravity should be in effect
             if (falling)
             {
+                crouching = false;
 
                 ySpeed += gravity;
                 platforms.move(0, -ySpeed);
@@ -292,7 +382,7 @@ namespace LondonSewersRPG
                 }
 
                 bool intersected = false;
-                while (platforms.collides(charRect)[0] != -1)
+                while (platforms.collides(charRect)[0] != -1 && platforms.textureMap[platforms.collides(charRect)[0], platforms.collides(charRect)[1]] == 1)
                 {
                     intersected = true;
                     if (ySpeed < 0) // on the way up, hit our head
@@ -320,7 +410,7 @@ namespace LondonSewersRPG
             {
                 bool collided = false;
                 charRect.Y++;
-                if (platforms.collides(charRect)[0] != -1)
+                if (platforms.collides(charRect)[0] != -1 && platforms.textureMap[platforms.collides(charRect)[0], platforms.collides(charRect)[1]] == 1)
                 {
                     collided = true;
                 }
@@ -343,14 +433,24 @@ namespace LondonSewersRPG
                     falling = true;
                 }
 
+                if (keys.IsKeyDown(Keys.LeftControl))
+                {
+                    crouching = true;
+                }
+                else
+                {
+                    crouching = false;
+                }
+
             }
 
-            if (keys.IsKeyDown(Keys.LeftControl))
+            if (crouching)
             {
-                crouching = true;
-            } else
+                xSpeed = 3;
+            }
+            else
             {
-                crouching = false;
+                xSpeed = 7;
             }
 
             if (keys.IsKeyDown(Keys.A))
@@ -358,22 +458,11 @@ namespace LondonSewersRPG
                 platforms.move(xSpeed, 0);
                 buffRatActualX += xSpeed;
                 wingedRatActualX += xSpeed;
-                if (crouching)
+                while (platforms.collides(charRect)[0] != -1 && platforms.textureMap[platforms.collides(charRect)[0], platforms.collides(charRect)[1]] == 1)
                 {
-                    while (platforms.collides(charCrouchRect)[0] != -1)
-                    {
-                        platforms.move(-1, 0);
-                        buffRatActualX--;
-                        wingedRatActualX--;
-                    }
-                } else
-                {
-                    while (platforms.collides(charRect)[0] != -1)
-                    {
-                        platforms.move(-1, 0);
-                        buffRatActualX--;
-                        wingedRatActualX--;
-                    }
+                    platforms.move(-1, 0);
+                    buffRatActualX--;
+                    wingedRatActualX--;
                 }
                 facingRight = false;
             }
@@ -383,23 +472,11 @@ namespace LondonSewersRPG
                 platforms.move(-xSpeed, 0);
                 buffRatActualX -= xSpeed;
                 wingedRatActualX -= xSpeed;
-                if (crouching)
+                while (platforms.collides(charRect)[0] != -1 && platforms.textureMap[platforms.collides(charRect)[0], platforms.collides(charRect)[1]] == 1)
                 {
-                    while (platforms.collides(charCrouchRect)[0] != -1)
-                    {
-                        platforms.move(1, 0);
-                        buffRatActualX++;
-                        wingedRatActualX++;
-                    }
-                }
-                else
-                {
-                    while (platforms.collides(charRect)[0] != -1)
-                    {
-                        platforms.move(1, 0);
-                        buffRatActualX++;
-                        wingedRatActualX++;
-                    }
+                    platforms.move(1, 0);
+                    buffRatActualX++;
+                    wingedRatActualX++;
                 }
                 facingRight = true;
             }
@@ -468,7 +545,7 @@ namespace LondonSewersRPG
                 }
             }
 
-            if (attackTimer < 45)
+            if (attackTimer < 30)
             {
                 attackTimer++;
 
@@ -477,12 +554,16 @@ namespace LondonSewersRPG
                     if (facingRight && charAttackRightRect.Intersects(buffRatRect))
                     {
                         buffRatHealth -= charDamage;
+                        buffRatActualX += 15;
                     }
+
                     else if (!facingRight && charAttackLeftRect.Intersects(buffRatRect))
                     {
                         buffRatHealth -= charDamage;
+                        buffRatActualX -= 15;
                     }
                 }
+
                 if (attackTimer >= 20)
                 {
                     attackingState = false;
@@ -528,6 +609,11 @@ namespace LondonSewersRPG
             wingedRatRect.X = (int)wingedRatActualX;
             wingedRatRect.Y = (int)wingedRatActualY;
 
+            if (platforms.collides(charRect)[0] != -1 && platforms.textureMap[platforms.collides(charRect)[0], platforms.collides(charRect)[1]] == 2)
+            {
+                gameActiveState = false;
+                gameBossState = true;
+            }
 
         }
 
@@ -557,7 +643,7 @@ namespace LondonSewersRPG
                 }
                 if (crouching && !falling)
                 {
-                    spriteBatch.Draw(charRatRight, charCrouchRect, Color.White);
+                    spriteBatch.Draw(charRatRight, new Rectangle (charRect.X, charRect.Y + charRect.Height / 2, charRect.Width, charRect.Height / 2), Color.White);
                 }
                 else
                 {
@@ -572,7 +658,7 @@ namespace LondonSewersRPG
                 }
                 if (crouching && !falling)
                 {
-                    spriteBatch.Draw(charRatLeft, charCrouchRect, Color.White);
+                    spriteBatch.Draw(charRatLeft, new Rectangle (charRect.X, charRect.Y + charRect.Height / 2, charRect.Width, charRect.Height / 2), Color.White);
                 }
                 else
                 {
@@ -585,13 +671,338 @@ namespace LondonSewersRPG
             spriteBatch.DrawString(font, "Space to Attack!", new Vector2(platforms.rectangles[4, 1].X, platforms.rectangles[4, 1].Y), Color.Black);
         }
 
-        private void gameOverStateUpdate()
+        private void gameBossStateUpdate()
         {
+            KeyboardState keys = Keyboard.GetState();
+
+            if (falling)
+            {
+                crouching = false;
+
+                ySpeed += (gravity * 0.4);
+                bossRoomActualY += ySpeed;
+                bossRoomCharRect.Y = (int)bossRoomActualY;
+
+                bool intersected = false;
+                while (bossRoom.collides(bossRoomCharRect)[0] != -1)
+                {
+                    intersected = true;
+                    if (ySpeed < 0) // on the way up, hit our head
+                    {
+                        bossRoomActualY++;
+                        bossRoomCharRect.Y = (int)bossRoomActualY;
+                    }
+                    else if (ySpeed > 0) // on the way down, landed on ground
+                    {
+                        bossRoomActualY--;
+                        bossRoomCharRect.Y = (int)bossRoomActualY;
+                        falling = false;
+                    }
+
+                }
+                if (intersected)
+                {
+                    ySpeed = 0;
+                }
+
+            }
+            else
+            {
+                bool collided = false;
+                bossRoomCharRect.Y++;
+                if (bossRoom.collides(bossRoomCharRect)[0] != -1)
+                {
+                    collided = true;
+                }
+                bossRoomCharRect.Y--;
+
+                if (!collided)
+                {
+                    falling = true;
+                }
+
+                if (keys.IsKeyDown(Keys.W))
+                {
+                    if (crouching)
+                    {
+                        ySpeed = ((jumpSpeed * 1.3) * 0.4);
+                    }
+                    else
+                    {
+                        ySpeed = (jumpSpeed * 0.4);
+                    }
+                    falling = true;
+                }
+
+                if (keys.IsKeyDown(Keys.LeftControl))
+                {
+                    crouching = true;
+                }
+                else
+                {
+                    crouching = false;
+                }
+
+            }
+
+            if (crouching)
+            {
+                xSpeed = 3;
+            }
+            else
+            {
+                xSpeed = 7;
+            }
+
+            if (keys.IsKeyDown(Keys.A))
+            {
+                facingRight = false;
+                bossRoomActualX -= (xSpeed * 0.4);
+                bossRoomCharRect.X = (int)bossRoomActualX;
+                while (bossRoom.collides(bossRoomCharRect)[0] != -1)
+                {
+                    bossRoomActualX++;
+                    bossRoomCharRect.X = (int)bossRoomActualX;
+                }
+            }
+
+            if (keys.IsKeyDown(Keys.D))
+            {
+                facingRight = true;
+                bossRoomActualX += (xSpeed * 0.4);
+                bossRoomCharRect.X = (int)bossRoomActualX;
+                while (bossRoom.collides(bossRoomCharRect)[0] != -1)
+                {
+                    bossRoomActualX--;
+                    bossRoomCharRect.X = (int)bossRoomActualX;
+                }
+            }
+
+            if (attackTimer < 30)
+            {
+                attackTimer++;
+
+                if (attackTimer == 1)
+                {
+                    if (facingRight && new Rectangle(bossRoomCharRect.X + bossRoomCharRect.Width, bossRoomCharRect.Y, 20, 30).Intersects(bossRect))
+                    {
+                        bossHealth -= charDamage;
+                    }
+                    else if (!facingRight && new Rectangle(bossRoomCharRect.X - 20, bossRoomCharRect.Y, 20, 30).Intersects(bossRect))
+                    {
+                        bossHealth -= charDamage;
+                    }
+                }
+
+                if (attackTimer >= 20)
+                {
+                    attackingState = false;
+                }
+
+            }
+            else if (keys.IsKeyDown(Keys.Space))
+            {
+                attackingState = true;
+                attackTimer = 0;
+            }
+
+            for (int i = 0; i < cannonBallRects.Length; i++)
+            {
+                cannonBallRects[i].X-= 3;
+
+                if (cannonBallRects[i].X < 0)
+                {
+                    cannonBallRects[i].X = 1600;
+                    cannonBallRects[i].Y = random.Next(360, 420);
+                }
+
+                if (crouching)
+                {
+                    if (cannonBallRects[i].Intersects(new Rectangle(bossRoomCharRect.X, bossRoomCharRect.Y + bossRoomCharRect.Height / 2, bossRoomCharRect.Width, bossRoomCharRect.Height / 2)))
+                    {
+                        gameMenuState = true;
+                        gameBossState = false;
+                    }
+                } 
+                else
+                {
+                    if (cannonBallRects[i].Intersects(bossRoomCharRect))
+                    {
+                        gameMenuState = true;
+                        gameBossState = false;
+                    }
+                }
+            }
+
+
+
+            // Boss Stuff \\
+
+            if (bossFalling)
+            {
+                bossYSpeed += (gravity * 0.4);
+                if (bossYSpeed > 8)
+                {
+                    bossYSpeed = 8;
+                }
+                bossActualY += bossYSpeed;
+                bossRect.Y = (int)bossActualY;
+
+                bool intersected = false;
+                while (bossRoom.collides(bossRect)[0] != -1 && bossYSpeed > 0)// on the way down, landed on ground
+                {
+                    bossActualY--;
+                    bossRect.Y = (int)bossActualY;
+                    bossFalling = false;
+                    intersected = true;
+
+                }
+                if (intersected)
+                {
+                    bossYSpeed = 0;
+                }
+
+            }
+
+            bossAttackTimer++;
+
+            if (bossAttackTimer > 0)
+            {
+                if (currentBossAttack == 0)
+                {
+                    currentBossAttack = random.Next(1, 2);
+                } 
+                else
+                {
+                    currentBossAttack = 0;
+                }
+
+                if (currentBossAttack == 0)
+                {
+                    bossAttackTimer = -180;
+                }
+                else if (currentBossAttack == 1)
+                {
+                    bossAttackTimer = -300;
+                }
+                else if (currentBossAttack == 2)
+                {
+                    bossAttackTimer = -600;
+                }
+            }
+
+            // Boss attacks \\
+            if (currentBossAttack == 1)
+            {
+                if (bossAttackTimer < -240)
+                {
+                    bossCrouching = true;
+                }
+                else if (bossAttackTimer > -240 && bossAttackTimer < -100)
+                {
+                    bossCrouching = false;
+                    bossActualY -= 10;
+                }
+                else if (bossAttackTimer > -80 && bossAttackTimer < -75)
+                {
+                    bossRect.X = bossRoomCharRect.X - 40;
+
+                    if (bossRect.X < 50)
+                    {
+                        bossRect.X = 50;
+                    }
+                    else if (bossRect.X > 750 - bossRect.Width)
+                    {
+                        bossRect.X = 750 - bossRect.Width;
+                    }
+
+                    bossActualY = -150;
+                    bossYSpeed = 0.0;
+
+                    bossFalling = true;
+                }
+            }
+
+            bossRect.Y = (int)bossActualY;
+
+            if ((bossFalling && bossRect.Intersects(bossRoomCharRect)) || bossHealth <= 0)
+            {
+                gameBossState = false;
+                gameMenuState = true;
+            }
+
+            bossHealthRect.Width = (int)(740 / (500 / bossHealth));
+
+
+            // End boss \\
+
+
 
         }
 
-        private void gameOverStateDraw(SpriteBatch spriteBatch)
+        private void gameBossStateDraw(SpriteBatch spriteBatch)
         {
+
+            spriteBatch.Draw(cannonBall, cannonBallRects[0], Color.White);
+            spriteBatch.Draw(cannonBall, cannonBallRects[1], Color.White);
+
+            bossRoom.draw(spriteBatch);
+
+            if (facingRight)
+            {
+                if (attackingState)
+                {
+                    spriteBatch.Draw(attackRight, new Rectangle(bossRoomCharRect.X + bossRoomCharRect.Width, bossRoomCharRect.Y, 20, 30), Color.White);
+                }
+                if (crouching && !falling)
+                {
+                    spriteBatch.Draw(charRatRight, new Rectangle(bossRoomCharRect.X, bossRoomCharRect.Y + bossRoomCharRect.Height / 2, bossRoomCharRect.Width, bossRoomCharRect.Height / 2), Color.White);
+                }
+                else
+                {
+                    spriteBatch.Draw(charRatRight, bossRoomCharRect, Color.White);
+                }
+            }
+            else
+            {
+                if (attackingState)
+                {
+                    spriteBatch.Draw(attackLeft, new Rectangle(bossRoomCharRect.X - 20, bossRoomCharRect.Y, 20, 30), Color.White);
+                }
+                if (crouching && !falling)
+                {
+                    spriteBatch.Draw(charRatLeft, new Rectangle(bossRoomCharRect.X, bossRoomCharRect.Y + bossRoomCharRect.Height / 2, bossRoomCharRect.Width, bossRoomCharRect.Height / 2), Color.White);
+                }
+                else
+                {
+                    spriteBatch.Draw(charRatLeft, bossRoomCharRect, Color.White);
+                }
+            }
+
+            spriteBatch.Draw(healthBar, bossHealthRect, Color.White);
+            
+            if (bossFacingRight)
+            {
+                if (!bossCrouching)
+                {
+                    spriteBatch.Draw(bossRight, bossRect, Color.DarkGray);
+                }
+                else
+                {
+                    spriteBatch.Draw(bossRight, new Rectangle(bossRect.X, bossRect.Y + bossRect.Height / 2, bossRect.Width, bossRect.Height / 2), Color.DarkGray);
+                }
+            } 
+            else
+            {
+                if (!bossCrouching)
+                {
+                    spriteBatch.Draw(bossLeft, bossRect, Color.DarkGray);
+                }
+                else
+                {
+                    spriteBatch.Draw(bossLeft, new Rectangle(bossRect.X, bossRect.Y + bossRect.Height / 2, bossRect.Width, bossRect.Height / 2), Color.DarkGray);
+                }
+            }
 
         }
 
@@ -615,7 +1026,13 @@ namespace LondonSewersRPG
         private void reInitialize()
         {
             charRect = new Rectangle(355, 200, 90, 90);
-            charCrouchRect = new Rectangle(355, 240, 90, 50);
+            bossRoomCharRect = new Rectangle(42, 402, 36, 36);
+
+            cannonBallRects = new Rectangle[]
+            {
+                new Rectangle(800, 360, 20, 20),
+                new Rectangle(1600, 400, 20, 20)
+            };
 
             charHealthRect = new Rectangle(355, 175, 90, 10);
 
@@ -634,6 +1051,21 @@ namespace LondonSewersRPG
             charMaxHealth = 10.0;
             charHealth = charMaxHealth;
             charDamage = 5.0;
+
+            bossRoomActualX = bossRoomCharRect.X;
+            bossRoomActualY = bossRoomCharRect.Y;
+
+            bossRect = new Rectangle(340, 30, 120, 100);
+            bossHealthRect = new Rectangle(30, 10, 740, 20);
+
+            bossActualY = bossRect.Y;
+
+            bossFacingRight = true;
+            bossHealth = 500.0;
+            bossFalling = true;
+            bossAttackTimer = -300;
+            bossYSpeed = 0.0;
+            currentBossAttack = 1;
 
             buffRatRect = new Rectangle(555, 140, 150, 150);
 
@@ -659,17 +1091,6 @@ namespace LondonSewersRPG
             attackTimer = 0;
 
             platforms.tp(platforms.startX, platforms.startY);
-            platforms.collisionMap =
-                new int[,] {
-                    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0 },
-                    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 },
-                    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 },
-                    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 },
-                    {0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 },
-                    {0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 },
-                    {1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }
-                };
-            platforms.textureMap = platforms.collisionMap;
         }
     }
 
